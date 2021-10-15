@@ -6,10 +6,7 @@ import pickle
 from matplotlib import pyplot as plt
 
 # Builds dictionary containing SIFT features data for all images in a directory
-def SIFT_feature_dataset(path):
-    
-    # Get list of all images
-    img_paths = glob.glob(path)
+def SIFT_feature_dataset(img_paths):
     
     print(f'{len(img_paths)} images to analyse.')
 
@@ -45,8 +42,8 @@ def SIFT_feature_dataset(path):
     return SIFT_features
 
 # Saves data dictionary into a .pkl file
-def save_dataset(data):
-    with open(data + '.pkl', 'wb') as output_file:
+def save_dataset(name, data):
+    with open(name + '.pkl', 'wb') as output_file:
         pickle.dump(data, output_file)
 
 # Loads data from .pkl file
