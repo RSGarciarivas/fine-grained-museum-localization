@@ -5,13 +5,40 @@ import numpy as np
 import pickle
 from matplotlib import pyplot as plt
 
-# Builds dictionary containing SIFT features data for all images in a directory
-def SIFT_feature_dataset(img_paths):
+# Builds entry of SIFT features for image with enough descriptors
+def add_img_features(kp, des):
+    
+    img_features = {}
+    keypoints = []
+    
+    for keypoint in kp:
+        # Extract keypoint info in a way that can be stored in a file
+        keypoint = {'pt': keypoint.pt, 'size': keypoint.size,
+                    'angle': keypoint.angle}
+        
+        keypoints.append(keypoint)
+    
+    # Append them in dictionary
+    img_features = {'keypoints': keypoints, 'descriptors': des}
+    
+    return img_features
+    
+# Builds entry for image with insufficient descriptors
+def add_no_features_img(img):
+    
+    # Returns the mean pixel value of the image
+    return np.mean(img)
+
+# From all images in a directory, builds dictionary containing SIFT features
+# data for all images with more than the minimum descriptors and dictionary 
+# containing images with less than the minimum number of descriptors 
+def build_dataset(img_paths, N = 5):
     
     print(f'{len(img_paths)} images to analyse.')
 
     # Dictionary for storing features for each image
     SIFT_features = {}
+    no_features = {}
     
     # Work on each image
     for i, img_path in enumerate(img_paths):
@@ -19,27 +46,24 @@ def SIFT_feature_dataset(img_paths):
         print(f'Working on image {i + 1} of {len(img_paths)}')
         
         # Read image
-        img = cv.imread(img_path)
+        img = cv.imread(img_path, cv.IMREAD_GRAYSCALE)
         
         # Obtain SIFT keypoints and descriptors
         sift = cv.SIFT_create()
         kp, des = sift.detectAndCompute(img, None)
         
-        # List for storing all keypoints' data
-        keypoints = []
-        
-        for keypoint in kp:
-            # Extract keypoint info in a way that can be stored in a file
-            keypoint = {'pt': keypoint.pt, 'size': keypoint.size,
-                        'angle': keypoint.angle}
+        # Add entry to suitable dictionary
+        if len(kp) >= 5:
             
-            keypoints.append(keypoint)
+            # Append features in dictionary
+            SIFT_features[img_path[16:-4]] = add_img_features(kp, des)
         
-        # Append them in dictionary
-        SIFT_features[img_path[16:-4]] = {'keypoints': keypoints,
-                                          'descriptors': des}
+        else:
+            
+            # Append image into images with not enough features
+            no_features[img_path[16:-4]] = add_no_features_img(img)
     
-    return SIFT_features
+    return SIFT_features, no_features
 
 # Saves data dictionary into a .pkl file
 def save_dataset(name, data):
@@ -107,12 +131,8 @@ def match_features(des_1, des_2, flann, L_ratio = 0.7):
     
     return good_matches
 
-
-def get_best_match(img, dataset):
-    
-    # Get SIFT features for image of interest
-    sift = cv.SIFT_create()
-    kp_query, des_query = sift.detectAndCompute(img, None)
+# Find best match between images with sufficient SIFT descriptors
+def find_best_SIFT_match(kp_q, des_q, dataset):
     
     # Dictionary for storing best match so far
     best_match = {'name': '', 'matches': 0, 'good_matches': [], 'keypoints': []}
@@ -129,23 +149,114 @@ def get_best_match(img, dataset):
         print(f'Image {i+1} of {len(dataset)}. Best match so far: {best_match["matches"]} points.')
         
         # Load its SIFT features
-        kp, des = get_img_features(img_name, dataset)
+        kp_m, des_m = get_img_features(img_name, dataset)
+                
+        # Get matching features
+        good_matches = match_features(des_q, des_m, flann)
         
-        # Check both images have descriptors
-        if (des is not None) and (des_query is not None):
-            # Check each image has more than 2 descriptors
-            if (len(des) > 2) and (len(des_query) > 2):
-                
-                # Get matching features
-                good_matches = match_features(des_query, des, flann)
-                
-                # Update best match so far if better match found
-                if len(good_matches) > best_match['matches']:
-                    best_match['name'] = img_name
-                    best_match['matches'] = len(good_matches)
-                    best_match['good_matches'] = good_matches
-                    best_match['keypoints'] = kp
+        # Update best match so far if better match found
+        if len(good_matches) > best_match['matches']:
+            best_match['name'] = img_name
+            best_match['matches'] = len(good_matches)
+            best_match['good_matches'] = good_matches
+            best_match['keypoints'] = kp_m
     
-    return best_match['name'], best_match['good_matches'], [kp_query, best_match['keypoints']]
+    return best_match['name'], best_match['good_matches'], [kp_q, best_match['keypoints']]
+
+# Find best match between images that don't have enough SIFT descriptors
+def find_best_no_feature_match(img, dataset):
+    
+    # Dictionary for storing best match so far
+    best_match = {'name': '', 'mean difference': float('inf')}
+    
+    # Get mean pixel value for the image
+    mpv_q = np.mean(img)
+    
+    # Compare to every image in dataset
+    for img_name, mpv_m in dataset.items():
+        err = abs(mpv_q - mpv_m)
+        
+        # Update best match so far if better match found
+        if err < best_match['mean difference']:
+            best_match['name'] = img_name
+            best_match['mean difference'] = err
+    
+    return best_match['name'], None, [None, None]
+
+# Get an image's best match by SIFT features from the given dataset
+def get_best_match(img, feature_dataset, no_feature_dataset):
+    
+    # Get SIFT features for image of interest
+    sift = cv.SIFT_create()
+    kp_q, des_q = sift.detectAndCompute(img, None)
+    
+    # Check if image has enough SIFT descriptors for feature matching
+    if len(kp_q) > 5:
+        
+        # Find best match according to its SIFT descriptors
+        print('Matching according to SIFT descriptors...')
+        match_name, good_matches, [kp_q, kp_m] = find_best_SIFT_match(kp_q, des_q, feature_dataset)
+        
+    else:
+        
+        # Find best match without features
+        print('Matching according to similarity...')
+        match_name, good_matches, [kp_q, kp_m] = find_best_no_feature_match(img, no_feature_dataset)
+    
+    return match_name, good_matches, [kp_q, kp_m]
+
+# Get calibration matrix given a camera's fields of view
+# in both axes and the dataset images' dimensions
+def get_calibration_mat(H_FoV, V_FoV, img_W, img_H):
+    # Horizontal and vertical focal lengths
+    fx = (img_W / 2) / np.tan((H_FoV*np.pi/180) / 2)
+    fy = (img_H / 2) / np.tan((V_FoV*np.pi/180) / 2)
+    
+    K = np.array([[fy, 0, img_W/2], [0, fx, img_H/2], [0, 0, 1]])
+    
+    return K
 
 
+
+
+
+
+
+def get_location(img_query, dataset, labels, K):
+    
+    # Get best match from the dataset
+    img_match_name, good_matches, [kp_query, kp_match] = get_best_match(img_query, dataset)
+    
+    # Get coordinates of best match
+    Xm = np.array(labels[img_match_name])
+    
+    # Get matching points for both images
+    pts_q = np.float32([kp_query[pt.queryIdx].pt for pt in good_matches]).reshape(-1,1,2)
+    pts_m = np.float32([kp_match[pt.trainIdx].pt for pt in good_matches]).reshape(-1,1,2)
+    
+    # Find the essential matrix for this pair of images
+    E, _ = cv.findEssentialMat(pts_q, pts_m, K)
+    
+    # Recover relative rotation and translation from E
+    _, R, t, _ = cv.recoverPose(E, pts_q, pts_m, K)
+    
+    
+    
+    
+    
+    
+    return True
+
+
+
+
+
+# Predict the location of an image based on the given datasets
+def make_prediction(img_q, feature_dataset, no_feature_dataset, labels, K):
+    
+    # Get best match from the datasets
+    match_name, good_matches, [kp_q, kp_m] = get_best_match(img_q, feature_dataset,
+                                                            no_feature_dataset)
+    
+    # return its coordinates
+    return match_name, labels[match_name]
