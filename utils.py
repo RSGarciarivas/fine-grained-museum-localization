@@ -4,6 +4,7 @@ import cv2 as cv
 import numpy as np
 import pickle
 from matplotlib import pyplot as plt
+import csv
 
 # Builds entry of SIFT features for image with enough descriptors
 def add_img_features(kp, des):
@@ -132,7 +133,7 @@ def match_features(des_1, des_2, flann, L_ratio = 0.7):
     return good_matches
 
 # Find best match between images with sufficient SIFT descriptors
-def find_best_SIFT_match(kp_q, des_q, dataset):
+def find_best_SIFT_match(kp_q, des_q, dataset, kp_threshold = 120, kp_ratio = 0.7):
     
     # Dictionary for storing best match so far
     best_match = {'name': '', 'matches': 0, 'good_matches': [], 'keypoints': []}
@@ -146,7 +147,7 @@ def find_best_SIFT_match(kp_q, des_q, dataset):
     # Go through each image in the dataset
     for i, img_name in enumerate(dataset):
         
-        print(f'Image {i+1} of {len(dataset)}. Best match so far: {best_match["matches"]} points.')
+        # print(f'Image {i+1} of {len(dataset)}. Best match so far: {best_match["matches"]} points.')
         
         # Load its SIFT features
         kp_m, des_m = get_img_features(img_name, dataset)
@@ -160,6 +161,11 @@ def find_best_SIFT_match(kp_q, des_q, dataset):
             best_match['matches'] = len(good_matches)
             best_match['good_matches'] = good_matches
             best_match['keypoints'] = kp_m
+        
+        # Break loop early if a good match has been found
+        if len(good_matches) >= kp_ratio*len(kp_q) or (len(good_matches) >= kp_threshold):
+            print('here')
+            break
     
     return best_match['name'], best_match['good_matches'], [kp_q, best_match['keypoints']]
 
@@ -194,13 +200,14 @@ def get_best_match(img, feature_dataset, no_feature_dataset):
     if len(kp_q) > 5:
         
         # Find best match according to its SIFT descriptors
-        print('Matching according to SIFT descriptors...')
-        match_name, good_matches, [kp_q, kp_m] = find_best_SIFT_match(kp_q, des_q, feature_dataset)
+        # print('Matching according to SIFT descriptors...')
+        match_name, good_matches, [kp_q, kp_m] = find_best_SIFT_match(kp_q, des_q, 
+                                                                      feature_dataset)
         
     else:
         
         # Find best match without features
-        print('Matching according to similarity...')
+        # print('Matching according to similarity...')
         match_name, good_matches, [kp_q, kp_m] = find_best_no_feature_match(img, no_feature_dataset)
     
     return match_name, good_matches, [kp_q, kp_m]
@@ -260,3 +267,28 @@ def make_prediction(img_q, feature_dataset, no_feature_dataset, labels, K):
     
     # return its coordinates
     return match_name, labels[match_name]
+
+# Predicts coordinates for all images in given directory
+def predict_and_write_output(output_file, img_paths, feature_dataset, no_feature_dataset, labels, K):
+    
+    # Open csv file for writing results
+    with open(output_file + '.csv', 'w') as out_csv:
+        writer = csv.writer(out_csv, delimiter = ',')
+        
+        # Write headers
+        writer.writerow(['id', 'x', 'y'])
+        
+        # Analyse each image in directory
+        for i, img_path in enumerate(img_paths):
+            
+            print(f'Image {i+1} of {len(img_paths)}')
+            img_name = img_path[15:-4]
+            # Read image
+            img = cv.imread(img_path, cv.IMREAD_GRAYSCALE)
+            
+            # Predict coordinates
+            _, Xq = make_prediction(img, feature_dataset, no_feature_dataset, labels, K)
+            # Write result
+            writer.writerow([img_name, Xq[0], Xq[1]])
+    
+

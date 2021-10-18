@@ -1,3 +1,9 @@
 *.jpg
 *.csv
-*.pkl
+
+training_set.pkl
+training_subset.pkl
+validation_paths.pkl
+test_set_features.pkl
+
+# *.pkl
