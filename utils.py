@@ -92,7 +92,7 @@ def get_img_features(img_name, dataset):
         
         # Build keypoint object
         feature = cv.KeyPoint(x = point[0], y = point[1], 
-                              _size = size, _angle = angle)
+                              size = size, angle = angle)
         
         # Append to keypoint list
         kp.append(feature)
@@ -187,7 +187,7 @@ def find_best_no_feature_match(img, dataset):
             best_match['name'] = img_name
             best_match['mean difference'] = err
     
-    return best_match['name'], None, [None, None]
+    return best_match['name'], 300, [None, None]
 
 # Get an image's best match by SIFT features from the given dataset
 def get_best_match(img, feature_dataset, no_feature_dataset):
@@ -219,7 +219,7 @@ def get_calibration_mat(H_FoV, V_FoV, img_W, img_H):
     fx = (img_W / 2) / np.tan((H_FoV*np.pi/180) / 2)
     fy = (img_H / 2) / np.tan((V_FoV*np.pi/180) / 2)
     
-    K = np.array([[fy, 0, img_W/2], [0, fx, img_H/2], [0, 0, 1]])
+    K = np.array([[fx, 0, img_W/2], [0, fy, img_H/2], [0, 0, 1]])
     
     return K
 
@@ -266,7 +266,7 @@ def make_prediction(img_q, feature_dataset, no_feature_dataset, labels, K):
                                                             no_feature_dataset)
     
     # return its coordinates
-    return match_name, labels[match_name]
+    return [match_name, labels[match_name], len(good_matches)]
 
 # Predicts coordinates for all images in given directory
 def predict_and_write_output(output_file, img_paths, feature_dataset, no_feature_dataset, labels, K):
