@@ -187,7 +187,7 @@ def find_best_no_feature_match(img, dataset):
             best_match['name'] = img_name
             best_match['mean difference'] = err
     
-    return best_match['name'], 300, [None, None]
+    return best_match['name'], list(range(300)), [None, None]
 
 # Get an image's best match by SIFT features from the given dataset
 def get_best_match(img, feature_dataset, no_feature_dataset):
