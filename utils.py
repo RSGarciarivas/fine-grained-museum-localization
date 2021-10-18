@@ -164,7 +164,7 @@ def find_best_SIFT_match(kp_q, des_q, dataset, kp_threshold = 120, kp_ratio = 0.
         
         # Break loop early if a good match has been found
         if len(good_matches) >= kp_ratio*len(kp_q) or (len(good_matches) >= kp_threshold):
-            print('here')
+            # print(f'Stopping, {len(good_matches)} matches found')
             break
     
     return best_match['name'], best_match['good_matches'], [kp_q, best_match['keypoints']]
