@@ -295,3 +295,22 @@ def predict_and_write_output(output_file, img_paths, feature_dataset, no_feature
             writer.writerow([img_name, Xq[0], Xq[1]])
     
 
+# split dataset into k segments (for features only, k = number of nodes)
+def split_dataset(raw_data, k):
+    split_data = []
+    n = len(raw_data)
+
+    keys = list(raw_data.keys())
+    indices = np.linspace(0, n, k+1, dtype = 'int32')
+
+    # split into k segments in dict of dicts form
+    for i in range(k):
+        temp = dict()
+        temp_keys = keys[indices[i]:indices[i+1]]
+
+        for key in temp_keys:
+            temp[key] = raw_data.pop(key)
+
+        split_data.append(temp)
+    
+    return split_data
