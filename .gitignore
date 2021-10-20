@@ -7,5 +7,6 @@ validation_paths.pkl
 test_set_features.pkl
 
 !results.csv
+!two_matches.csv
 
 # *.pkl
