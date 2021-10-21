@@ -73,8 +73,15 @@ for i in range(len(matches)):
     x3 = x1 + scale_x * t1[0]
     y3 = y1 + scale_y * t1[1]
 
-    x.append(x3.item())
-    y.append(y3.item())
+    if x3 > 95 or x3 < -175:
+        x.append(x1)
+    else:
+         x.append(x3.item())
+    
+    if y3 > 150 or y3 < -95:
+        y.append(y1)
+    else:
+        y.append(y3.item())
 
 results = pd.DataFrame()
 results['id'] = matches.test
@@ -82,4 +89,4 @@ results['x'] = x
 results['y'] = y
 
 results = results.sort_values('id')
-results.to_csv('scale.csv', index = False)
+results.to_csv('scale1.csv', index = False)
