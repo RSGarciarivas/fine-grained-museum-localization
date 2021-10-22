@@ -5,7 +5,7 @@
 The following steps are required before running any other code:
 
 1. Please ensure that training and test images are located in `/Dataset/train` and `/Dataset/test` respectively.
-2. 3. Run `pip install -r requirements.txt` to ensure necessary packages are installed and up to date
+2. Run `pip install -r requirements.txt` to ensure necessary packages are installed and up to date
 3. To construct the training feature set, run the first three code chunks in `Closest image matcher.ipynb`
 
 Please note that for `mpi4py` to work, additional software may be required.
