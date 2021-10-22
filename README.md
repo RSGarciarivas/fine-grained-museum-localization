@@ -17,6 +17,7 @@ To run, use the command:
 ## Pose recovery
 The following command must be run once before running the main script:
 `mpirun -n <n_cores> python3 extract_scale_image.py`
+
 The command above can also be run if the training dataset changes.
 
 The main script can be run with:
