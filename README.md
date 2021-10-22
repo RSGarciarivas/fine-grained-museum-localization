@@ -27,6 +27,9 @@ Please note that this is the final version that has been adjusted for 0 translat
 
 ## Results
 Results for the following are contained in:
+
 Feature matching - `sift.csv`
+
 Pose recovery - `scale.csv`
+
 Pose recovery with adjustment - `scale1.csv`
