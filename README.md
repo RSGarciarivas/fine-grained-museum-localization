@@ -22,3 +22,11 @@ The command above can also be run if the training dataset changes.
 
 The main script can be run with:
 `python3 scale_estimate.py`
+
+Please note that this is the final version that has been adjusted for 0 translation.
+
+## Results
+Results for the following are contained in:
+Feature matching - `sift.csv`
+Pose recovery - `scale.csv`
+Pose recovery with adjustment - `scale1.csv`
