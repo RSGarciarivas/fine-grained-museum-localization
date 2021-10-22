@@ -1,29 +1,11 @@
-from utils import load_dataset, make_prediction, get_calibration_mat
+from utils import load_dataset, make_prediction, get_calibration_mat, split_dataset
 from mpi4py import MPI
 import numpy as np
 import glob
 import cv2
 import csv
 
-# split dataset into k segments (for features only, k = number of nodes)
-def split_dataset(raw_data, k):
-    split_data = []
-    n = len(raw_data)
 
-    keys = list(raw_data.keys())
-    indices = np.linspace(0, n, k+1, dtype = 'int32')
-
-    # split into k segments in dict of dicts form
-    for i in range(k):
-        temp = dict()
-        temp_keys = keys[indices[i]:indices[i+1]]
-
-        for key in temp_keys:
-            temp[key] = raw_data.pop(key)
-
-        split_data.append(temp)
-    
-    return split_data
 
 # camera parameters
 H_FoV = 73.7
